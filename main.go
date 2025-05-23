@@ -1,39 +1,51 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
 	"path"
+	"strings"
 )
 
 func main() {
-	targetPath := "D:\\#work\\BS\\CustomLevels"
-	samplePath := "D:\\SteamLibrary\\steamapps\\common\\Beat Saber\\Levels\\【Fitness歌曲包】最新100首健身类型的高评分歌曲 更新至[2023-12-01]_WGzeyu"
+	err := InitCommand()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	sampleMap := make(map[string]struct{})
 
 	// Add sample to list
-	err := AddFolderToLMap(samplePath, sampleMap)
-	if err != nil {
-		log.Fatalln("failed to add folder:", err)
+	for _, samplePath := range params.SamplePaths {
+		err = AddFolderToLMap(samplePath, sampleMap)
+		if err != nil {
+			log.Fatalln("failed to add folder:", err)
+		}
 	}
 
 	// check duplicated name
-	dupList, err := CheckDuplicated(targetPath, sampleMap)
+	dupList, err := CheckDuplicated(params.TargetPath, sampleMap)
 	if err != nil {
 		log.Fatalln("failed to check duplicate:", err)
 	}
 
-	log.Println("result: ", dupList)
-	log.Println("count: ", len(dupList))
+	log.Println("Duplicated: ", dupList)
+	log.Println("Count: ", len(dupList))
 
-	var re string
-	fmt.Scan(&re)
-
-	if re != "" {
-		RemoveDuplicated(targetPath, dupList)
+	if !params.Confirm {
+		fmt.Print("Delete duplicated？(y/N): ")
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(strings.ToLower(input))
+		if input != "y" && input != "yes" {
+			log.Println("Canceled by user")
+			return
+		}
 	}
+
+	RemoveDuplicated(params.TargetPath, dupList)
 }
 
 func CheckDuplicated(targetPath string, sampleMap map[string]struct{}) ([]string, error) {
